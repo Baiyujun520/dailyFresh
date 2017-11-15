@@ -43,13 +43,16 @@ def register(request):
 #
 #     # 返回应答
 
+
 # 用户注册类视图写
 class RegisterView(View):
     # 进入注册页面
     def get(self, request):
+        '''显示注册页面'''
         return render(request, 'register.html')
 
     def post(self, request):
+        '''进行注册处理'''
         # 接受数据
         username = request.POST.get('username')
         password = request.POST.get('pwd')
@@ -64,6 +67,16 @@ class RegisterView(View):
 
         if allow != 'on':
             return render(request, 'register.html', {'errmsg': '请同意用户协议'})
+
+        # 查找数据库中用户名是否存在
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            # 用户不存在
+            user = None
+        if user:
+            # 用户名已经存在
+            return render(request, 'register.html', {'errmsg': '用户名已经存在'})
         # 进行业务处理
         user = User.objects.create_user(username, email, password)
         user.is_active = 0
