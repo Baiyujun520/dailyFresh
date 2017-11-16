@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect,HttpResponse
 from django.core.urlresolvers import reverse
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from django.contrib.auth import authenticate, login
 from django.views.generic import View
 from django.conf import settings
 from django.core.mail import send_mail
@@ -94,7 +95,7 @@ class RegisterView(View):
         token = token.decode()
 
         # 使用celery发送邮件
-        send_register_active_email(email, username, token)
+        send_register_active_email.delay(email, username, token)
 
 
         # 返回应答
@@ -118,7 +119,58 @@ class ActiveView(View):
             user.save()
 
             # 激活后跳转到登录页面
-            return render(request, 'login.html')
+            return redirect(reverse('user:login'))
         except SignatureExpired as e:
             return HttpResponse('激活链接已经失效')
+
+
+class LoginView(View):
+    '''登录'''
+    def get(self, request):
+        '''显示登录页面'''
+        if 'username' in request.COOKIES:
+            username = request.COOKIES.get('username')
+            checked = 'checked'
+        else:
+            username = ''
+            checked = ''
+        return render(request, 'login.html', {'username':username, 'checked': checked})
+
+    def post(self, requset):
+        '''验证登录信息正确性'''
+        # 获取post请求中的信息
+        username = requset.POST.get('username')
+        password = requset.POST.get('pwd')
+
+        # 首先验证输入的完整性
+        if not all([username, password]):
+            return render(requset, 'login.html' ,{'errmsg': '数据不完整'})
+
+        # 业务处理：登录验证
+        user = authenticate(username=username, password=password)
+        # 用户名和密码正确
+        if user is not None:
+            if user.is_active:
+                # 记住用户的登录状态
+                login(requset, user)
+                # 登录成功返回首页
+                response = redirect(reverse('goods:index'))
+
+                # 获取是否记住密码
+                remember = requset.POST.get('remember')
+                # 若记住密码则设置cookie
+                if remember == 'on':
+                    response.set_cookie('username', username)
+                else:
+                    response.delete_cookie('username')
+
+                return response
+
+            else:
+                # 用户账号未激活
+                return render(requset, 'login.html', {'errmsg':'用户未激活'})
+        else:
+            # 用户或密码错误
+            return render(requset, 'login.html', {'errmsg': '用户名或密码错误'})
+
 

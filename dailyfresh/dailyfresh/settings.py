@@ -143,6 +143,6 @@ CACHES = {
     }
 }
 
-# # 设置存储session
-# SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-# SESSION_CACHE_ALIAS = "default"
+# 设置存储session
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
