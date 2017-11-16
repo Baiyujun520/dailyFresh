@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect,HttpResponse
 from django.core.urlresolvers import reverse
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login,logout
 from django.views.generic import View
+from utils.mixin import LoginRequiredMixin
 from django.conf import settings
 from django.core.mail import send_mail
 from celery_tasks.tasks import  send_register_active_email
@@ -153,8 +154,12 @@ class LoginView(View):
             if user.is_active:
                 # 记住用户的登录状态
                 login(requset, user)
+
+                # 获取登录跳转的url地址
+                next_url = requset.GET.get('next', reverse('goods:index'))
+
                 # 登录成功返回首页
-                response = redirect(reverse('goods:index'))
+                response = redirect(next_url)
 
                 # 获取是否记住密码
                 remember = requset.POST.get('remember')
@@ -173,4 +178,35 @@ class LoginView(View):
             # 用户或密码错误
             return render(requset, 'login.html', {'errmsg': '用户名或密码错误'})
 
+
+class LogoutView(View):
+    '''退出'''
+    def get(self, request):
+        # 退出并清除session信息
+        logout(request)
+        # 退出后跳转到首页
+        return redirect(reverse('goods:index'))
+
+class UserInfoView(LoginRequiredMixin, View):
+    '''用户中心'''
+    def get(self, request):
+        return render(request, 'user_center_info.html', {'page': 'user'})
+
+
+class UserOrderView(LoginRequiredMixin, View):
+    '''用户中心-订单页面'''
+    def get(self, request):
+        return render(request, 'user_center_order.html', {'page': 'order'})
+
+
+class AddressView(LoginRequiredMixin, View):
+    '''用户中心-用户地址页面'''
+    def get(self, request):
+        return render(request, 'user_center_site.html', {'page': 'address'})
+
+
+class UserCartView(LoginRequiredMixin, View):
+    '''用户中心-购物车'''
+    def get(self, request):
+        return render(request, 'cart.html')
 
