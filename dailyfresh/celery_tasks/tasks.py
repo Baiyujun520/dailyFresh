@@ -22,8 +22,8 @@ def send_register_active_email(to_email, username, token):
     message = ''
     sender = settings.EMAIL_FROM
     receiver = [to_email]
-    msg = '<h1>%s, 欢迎您成为天天生鲜注册会员</h1>请点击下面链接激活您的账户<br/><a href="http://127.0.0.1:8000/user/active/%s">http://127.0.0.1:8000/user/active/%s</a>' % (
-        username, token, token)
-    print('12314123')
+    msg = '<h1>%s, 欢迎您成为天天生鲜注册会员</h1>请点击下面链接激活您的账户<br/>' \
+          '<a href="http://127.0.0.1:8000/user/active/%s">' \
+          'http://127.0.0.1:8000/user/active/%s</a>' % (username, token, token)
     send_mail(subject, message, sender, receiver, html_message=msg)
     time.sleep(5)

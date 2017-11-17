@@ -7,7 +7,7 @@ from utils.mixin import LoginRequiredMixin
 from django.conf import settings
 from django.core.mail import send_mail
 from django_redis import get_redis_connection
-from celery_tasks.tasks import  send_register_active_email
+from celery_tasks.tasks import send_register_active_email
 from itsdangerous import SignatureExpired
 from user.models import User, Address
 from goods.models import GoodsSKU
@@ -151,6 +151,7 @@ class LoginView(View):
 
         # 业务处理：登录验证
         user = authenticate(username=username, password=password)
+
         # 用户名和密码正确
         if user is not None:
             if user.is_active:
