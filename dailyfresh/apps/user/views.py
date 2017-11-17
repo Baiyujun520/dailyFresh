@@ -6,9 +6,11 @@ from django.views.generic import View
 from utils.mixin import LoginRequiredMixin
 from django.conf import settings
 from django.core.mail import send_mail
+from django_redis import get_redis_connection
 from celery_tasks.tasks import  send_register_active_email
 from itsdangerous import SignatureExpired
-from user.models import User
+from user.models import User, Address
+from goods.models import GoodsSKU
 import re
 
 
@@ -187,25 +189,102 @@ class LogoutView(View):
         # 退出后跳转到首页
         return redirect(reverse('goods:index'))
 
-class UserInfoView(LoginRequiredMixin, View):
+
+class UserInfoView(LoginRequiredMixin):
     '''用户中心'''
     def get(self, request):
-        return render(request, 'user_center_info.html', {'page': 'user'})
+        # 显示用户个人信息
+        user = request.user
+        address = Address.objects.get_default_address(user=user)
+        # 用户最近浏览记录
+
+        return render(request, 'user_center_info.html', {'page': 'user', 'user':user, 'address':address})
 
 
-class UserOrderView(LoginRequiredMixin, View):
+class UserOrderView(LoginRequiredMixin):
     '''用户中心-订单页面'''
     def get(self, request):
+        # 显示用户订单信息
         return render(request, 'user_center_order.html', {'page': 'order'})
 
 
-class AddressView(LoginRequiredMixin, View):
+class AddressView(LoginRequiredMixin):
     '''用户中心-用户地址页面'''
     def get(self, request):
-        return render(request, 'user_center_site.html', {'page': 'address'})
+        # 显示用户默认地址
+        user = request.user
+        # try:
+        #     address = Address.addrs.get(user=user, is_default=True)
+        # except Address.DoesNotExist:
+        #     # 没有默认地址
+        #     address = None
+        # 获取用户的默认地址
+        address = Address.objects.get_default_address(user=user)
+
+        # 获取浏览过的商品记录
+        # 用redis 来储存用户浏览记录，获取时要先跟ｒｅｄｉｓ建立链接
+        con = get_redis_connection('default')
+        # 获取对应用户的浏览记录
+        list_key = 'history_%d' % user.id
+        # 取出ｒｅｄｉｓ中该用户的五条浏览记录
+        sku_ids = con.lrange(list_key, 0, 4)
+        # 获取数据库中国对应商品编号的商品ｕｒｌ
+        goods_li = []
+        for id in sku_ids:
+            goods = GoodsSKU.objects.get(id=id)
+            goods_li.append(goods)
+
+        # 构造上下文
+        context = {'page': 'address', 'address':address, 'goods_li': goods_li}
+
+        return render(request, 'user_center_site.html', context)
+
+    def post(self, request):
+        # 获取用户提交的信息
+        receiver = request.POST.get('receiver')
+        addr = request.POST.get('addr')
+        zip_code = request.POST.get('zip_code')
+        phone = request.POST.get('phone')
+
+        # 数据校验
+        # 如果所输入的数据不完整则跳转到当前页面
+        if not all([receiver, addr, phone]):
+            return render(request, 'user_center_site.html', {'errmsg':'数据不完整'})
+
+        # 手机号码验证
+        if not re.match(r'^1[3|4|5|7|8][0-9]{9}$', phone):
+            return render(request, 'user_center_site.html', {'errmsg':'手机号码格式不正确'})
+
+        # 业务处理
+        # 如果用户没有默认的收货地址，则将添加的地址设为默认值，否则不做处理
+
+        # 获取登录对向
+        user = request.user
+        # try:
+        #     address = Address.addrs.get(user=user, is_default=True)
+        # except Address.DoesNotExist:
+        #     # 没有默认地址
+        #     address = None
+        address = Address.objects.get_default_address(user=user)
+
+        if address:
+            is_default = False
+        else:
+            is_default = True
+
+        # 将地址添加到数据库中
+        Address.objects.create(user=user,
+                               receiver=receiver,
+                               addr=addr,
+                               zip_code=zip_code,
+                               phone=phone,
+                               is_default=is_default)
+
+        # 返回应答
+        return redirect(reverse('user:address'))
 
 
-class UserCartView(LoginRequiredMixin, View):
+class UserCartView(LoginRequiredMixin):
     '''用户中心-购物车'''
     def get(self, request):
         return render(request, 'cart.html')
