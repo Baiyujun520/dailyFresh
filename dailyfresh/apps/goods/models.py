@@ -36,6 +36,10 @@ class GoodsSKU(BaseModel):
     sales = models.IntegerField(default=0, verbose_name='商品销量')
     status = models.SmallIntegerField(default=1, choices=status_choices, verbose_name='商品状态')
 
+
+    def __str__(self):
+        return self.name
+
     class Meta:
         db_table = 'df_goods_sku'
         verbose_name = '商品'
@@ -47,6 +51,9 @@ class Goods(BaseModel):
     name = models.CharField(max_length=20, verbose_name='商品SPU名称')
     detail = HTMLField(blank=True, verbose_name='商品详情')
 
+    def __str__(self):
+        return self.name
+
     class Meta:
         db_table = 'df_goods'
         verbose_name = '商品SPU'
@@ -57,6 +64,9 @@ class GoodsImage(BaseModel):
     '''商品图片模型类'''
     sku = models.ForeignKey('GoodsSKU', verbose_name='商品')
     image = models.ImageField(upload_to='goods', verbose_name='图片路径')
+
+    def __str__(self):
+        return self.name
 
     class Meta:
         db_table = 'df_goods_image'

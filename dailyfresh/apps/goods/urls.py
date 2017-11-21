@@ -1,7 +1,8 @@
 from django.conf.urls import url
-from goods.views import index, GoodsListView
+from goods.views import IndexView, DetailView, ListView
 
 urlpatterns = [
-    url(r'^$', index, name='index'),
-    url(r'^list$', GoodsListView.as_view(), name='list'),  # 商品详情列表
+    url(r'^index$', IndexView.as_view(), name='index'),
+    url(r'^goods/(?P<sku_id>\d+)$', DetailView.as_view(), name='detail'),  # 商品详情页面
+    url(r'^list/(?P<type_id>\d+)/(?P<page>\d+)$', ListView.as_view(), name='list'),  # 商品列表页面
 ]

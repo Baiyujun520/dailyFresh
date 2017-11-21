@@ -1,3 +1,4 @@
+from django.template import loader, RequestContext
 from django.core.mail import send_mail
 from django.conf import settings
 from celery import Celery
@@ -10,8 +11,9 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "dailyfresh.settings")
 django.setup()
 
+from goods.models import GoodsType, IndexGoodsBanner, IndexPromotionBanner, IndexTypeGoodsBanner
 # 创建一个Celery类
-app = Celery('celery_tasks.tasks', broker='redis://127.0.0.1:6379/5')
+app = Celery('celery_tasks.tasks', broker='redis://192.168.56.137:6379/5')
 
 
 # 创建发送激活邮件函数
@@ -27,3 +29,43 @@ def send_register_active_email(to_email, username, token):
           'http://127.0.0.1:8000/user/active/%s</a>' % (username, token, token)
     send_mail(subject, message, sender, receiver, html_message=msg)
     time.sleep(5)
+
+
+@app.task
+def generate_static_index_html():
+    '''生成首页静态页'''
+    # 获取商品分类信息
+    types = GoodsType.objects.all()
+    # 获取首页轮播图信息
+    goods_banners = IndexGoodsBanner.objects.all().order_by('index')
+    # 获取首页促销活动信息
+    promotion_banners = IndexPromotionBanner.objects.all().order_by('index')
+    # 获得首页分类商品展示信息
+    # type_goods_banners = IndexGoodsBanner.objects.all()
+
+    for type in types:
+        image_banners = IndexTypeGoodsBanner.objects.filter(type=type, display_type=1).order_by('index')
+        title_banners = IndexTypeGoodsBanner.objects.filter(type=type, display_type=0).order_by('index')
+        type.image_banners = image_banners
+        type.title_banners = title_banners
+    # 获取购物车商品数列数量
+    cart_count = 0
+
+    # 组织模板上下文
+    context = {'types': types,
+               'goods_banners': goods_banners,
+               'promotion_banners': promotion_banners,
+               'cart_count': cart_count
+               }
+
+    # 加载模板文件，返回模板对象
+    template = loader.get_template('static_index.html')
+    # 渲染模板，产生替换变量后的内容
+    static_html = template.render(context)
+    # 生成静态文件
+    save_path = os.path.join(settings.BASE_DIR, 'static/index.html')
+
+    with open(save_path, 'w') as f:
+        f.write(static_html)
+
+

@@ -191,25 +191,39 @@ class LogoutView(View):
         return redirect(reverse('goods:index'))
 
 
-class UserInfoView(LoginRequiredMixin):
+class UserInfoView(LoginRequiredMixin, View):
     '''用户中心'''
     def get(self, request):
         # 显示用户个人信息
         user = request.user
         address = Address.objects.get_default_address(user=user)
         # 用户最近浏览记录
+        # 获取浏览过的商品记录
+        # 用redis 来储存用户浏览记录，获取时要先跟ｒｅｄｉｓ建立链接
+        conn = get_redis_connection('default')
 
-        return render(request, 'user_center_info.html', {'page': 'user', 'user':user, 'address':address})
+        # 获取对应用户的浏览记录
+        list_key = 'history_%d' % user.id
+        # 取出ｒｅｄｉｓ中该用户的五条浏览记录
+        sku_ids = conn.lrange(list_key, 0, 4)
+        # 获取数据库中国对应商品编号的商品ｕｒｌ
+        goods_li = []
+        for id in sku_ids:
+            goods = GoodsSKU.objects.get(id=id)
+            goods_li.append(goods)
+
+        context = {'page': 'user', 'user': user, 'address': address,'goods_li': goods_li}
+        return render(request, 'user_center_info.html', context)
 
 
-class UserOrderView(LoginRequiredMixin):
+class UserOrderView(LoginRequiredMixin ,View):
     '''用户中心-订单页面'''
     def get(self, request):
         # 显示用户订单信息
         return render(request, 'user_center_order.html', {'page': 'order'})
 
 
-class AddressView(LoginRequiredMixin):
+class AddressView(LoginRequiredMixin, View):
     '''用户中心-用户地址页面'''
     def get(self, request):
         # 显示用户默认地址
@@ -222,21 +236,10 @@ class AddressView(LoginRequiredMixin):
         # 获取用户的默认地址
         address = Address.objects.get_default_address(user=user)
 
-        # 获取浏览过的商品记录
-        # 用redis 来储存用户浏览记录，获取时要先跟ｒｅｄｉｓ建立链接
-        con = get_redis_connection('default')
-        # 获取对应用户的浏览记录
-        list_key = 'history_%d' % user.id
-        # 取出ｒｅｄｉｓ中该用户的五条浏览记录
-        sku_ids = con.lrange(list_key, 0, 4)
-        # 获取数据库中国对应商品编号的商品ｕｒｌ
-        goods_li = []
-        for id in sku_ids:
-            goods = GoodsSKU.objects.get(id=id)
-            goods_li.append(goods)
+
 
         # 构造上下文
-        context = {'page': 'address', 'address':address, 'goods_li': goods_li}
+        context = {'page': 'address', 'address':address}
 
         return render(request, 'user_center_site.html', context)
 
@@ -285,7 +288,7 @@ class AddressView(LoginRequiredMixin):
         return redirect(reverse('user:address'))
 
 
-class UserCartView(LoginRequiredMixin):
+class UserCartView(LoginRequiredMixin, View):
     '''用户中心-购物车'''
     def get(self, request):
         return render(request, 'cart.html')
