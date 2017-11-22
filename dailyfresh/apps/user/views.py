@@ -288,8 +288,3 @@ class AddressView(LoginRequiredMixin, View):
         return redirect(reverse('user:address'))
 
 
-class UserCartView(LoginRequiredMixin, View):
-    '''用户中心-购物车'''
-    def get(self, request):
-        return render(request, 'cart.html')
-

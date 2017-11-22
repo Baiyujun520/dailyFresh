@@ -17,7 +17,7 @@
 					<li>
 						<a href="{% url 'goods:detail' sku.id %}"><img src="{{ sku.image.url }}"></a>
 						<h4><a href="{% url 'goods:detail' sku.id %}">{{ sku.name }}</a></h4>
-						<div class="prize">￥3.90</div>
+						<div class="prize">￥{{ sku.price }}</div>
 					</li>
                     {% endfor %}
 				</ul>
@@ -49,7 +49,7 @@
                 {% if skus_page.has_previous %}
 				<a href="{% url 'goods:list' type.id skus_page.previous_page_number %}?sort={{ sort }}"><上一页</a>
                 {% endif %}
-                {% for pindex in skus_page.paginator.page_range %}
+                {% for pindex in pages %}
                     {% if pindex == skus_page.number %}
 				    <a href="{% url 'goods:list' type.id pindex %}?sort={{ sort }}" class="active">{{ pindex }}</a>
                     {% else %}
