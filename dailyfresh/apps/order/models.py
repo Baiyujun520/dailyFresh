@@ -32,6 +32,14 @@ class OrderInfo(BaseModel):
         (4, '银联支付')
     )
 
+    ORDER_STATUS = {
+        1: '待支付',
+        2: '待发货',
+        3: '待收货',
+        4: '待评价',
+        5: '已完成'
+    }
+
     ORDER_STATUS_CHOICES = (
         (1, '待支付'),
         (2, '待发货'),
@@ -62,7 +70,7 @@ class OrderGoods(BaseModel):
     sku = models.ForeignKey('goods.GoodsSKU', verbose_name='商品SKU')
     count = models.IntegerField(default=1, verbose_name='商品数目')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='商品价格')
-    comment = models.CharField(max_length=256, null=True,  verbose_name='评论')
+    comment = models.CharField(max_length=256, default='',  verbose_name='评论')
 
     class Meta:
         db_table = 'df_order_goods'

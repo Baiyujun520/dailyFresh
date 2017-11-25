@@ -88,7 +88,7 @@ DATABASES = {
         'NAME': 'dailyfresh',
         'USER': 'root',
         'PASSWORD': 'mysql',
-        'HOST': '192.168.56.138',
+        'HOST': '192.168.56.139',
         'PORT': 3306,
     }
 }
