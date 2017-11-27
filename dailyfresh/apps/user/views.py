@@ -230,7 +230,7 @@ class UserOrderView(LoginRequiredMixin ,View):
         for order in orders:
             # 根据order_id 获取订单商品信息
             order_skus = OrderGoods.objects.filter(order_id=order.order_id)
-
+            print(order_skus)
             # 计算商品小计
             for order_sku in order_skus:
                 amount = order_sku.price * order_sku.count

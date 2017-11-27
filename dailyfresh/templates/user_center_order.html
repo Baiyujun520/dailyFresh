@@ -26,7 +26,7 @@
 							<td width="15%">{{ order.total_price|add:order.transit_price }}元(含运费：{{ order.transit_price }})</td>
 							<td width="15%">{{ order.status_name }}</td>
                             {% csrf_token %}
-							<td width="15%"><a href="#" order_id = {{ order.order_id }} status="{{ order.order_status }}" class="oper_btn">去付款</a></td>
+							<td width="15%"><a href="#" status = {{ order.order_status }} order_id = {{ order.order_id }} status="{{ order.order_status }}" class="oper_btn">去付款</a></td>
 						</tr>
 					</tbody>
 				</table>
@@ -39,9 +39,9 @@
                     {% endif %}
                     {% for pindex in pages %}
                         {% if pindex == order_page.number%}
-					<a href="#" class="active">{{ pindex }}</a>
+					<a href="{% url 'user:order' pindex %}" class="active">{{ pindex }}</a>
                         {% else %}
-					<a href="#">{{ pindex }}</a>
+					<a href="{% url 'user:order' pindex %}">{{ pindex }}</a>
                         {% endif %}
                     {% endfor %}
                     {% if order_page.has_next %}
@@ -53,25 +53,52 @@
 {% block bottomfiles %}
     <script src="{% static 'js/jquery-1.12.4.min.js' %}"></script>
     <script>
+        $('.oper_btn').each(function () {
+            var status = $(this).attr('status')
+            if (status == 1){
+                $(this).text('去支付');
+            }
+            else if(status == 4){
+                $(this).text('去评价');
+            }
+            else if( status == 5){
+                $(this).text('已完成');
+            }
+        });
+
         $('.oper_btn').click(function () {
             // 获取订单状态
             var status = $(this).attr('status');
-
+            // 获取订单id， 获取csrf
+            var order_id = $(this).attr('order_id');
             if(status == 1){
-                // 获取订单id， 获取csrf
-                var order_id = $(this).attr('order_id');
+
                 var csrf = $('input[name="csrfmiddlewaretoken"]').val();
                 // 发起ajax post 请求访问/order/pay, 传递参数：order_id
                 var params = {'order_id': order_id, 'csrfmiddlewaretoken': csrf}
 
                 $.post('/order/pay', params, function (data) {
                     if(data.res == 3){
-                        window.open(data.pay_url)
+                        window.open(data.pay_url);
+                        $.post('/order/check', params, function (data) {
+                            if (data.res == 3){
+                                // 支付成功，重新加载页面
+                                alert(data.message)
+                                location.reload()
+                            }
+                            else{
+                                alert(data.errmsg)
+                            }
+                        })
                     }
                     else{
                         alert(data.errmsg)
                     }
                 })
+            }
+            else if (status == 4){
+            // 跳转到评价页面
+            location.href = '/order/comment/'+order_id
             }
         })
 
